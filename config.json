@@ -1,12 +1,33 @@
-{   
+{
     "settings": {
-        "data_root": "data"
+        "data_root": "data",
+        "preprocess": false
     },
     "data": {
         "data_yearly": "mlsruod_yearly.csv",
         "data_monthly": "mlsruod_monthly.csv"
     },
-    "train" : {
-
+    "train": {
+        "model_path": "models",
+        "checkpoints": "models/checkpoints",
+        "trained_models": "models/saved"
+    },
+    "model": {
+        "available_losses": [
+            "MeanSquaredError",
+            "MeanAbsolutePercentageError",
+            "MeanAbsoluteError",
+            "MeanSquaredLogarithmicError"
+        ],
+        "loss": "mse",
+        "metrics": [
+            "mse",
+            "mapa",
+            "mae",
+            "msle"
+        ],
+        "optimizer": "adam",
+        "input_dim": 938,
+        "hidden_layer: 5"
     }
 }
