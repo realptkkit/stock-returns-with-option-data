@@ -9,8 +9,12 @@
     },
     "train": {
         "model_path": "models",
-        "checkpoints": "models/checkpoints",
-        "trained_models": "models/saved"
+        "checkpoint_path": "models/checkpoints",
+        "epochs": 20
+    },
+    "evaluation": {
+        "results_root": "results",
+        "evaluation_csv": "results/evaluation_results.csv"
     },
     "model": {
         "available_losses": [
@@ -22,12 +26,14 @@
         "loss": "mse",
         "metrics": [
             "mse",
-            "mapa",
+            "mape",
             "mae",
             "msle"
         ],
         "optimizer": "adam",
-        "input_dim": 938,
-        "hidden_layer: 5"
+        "input_dim": 935,
+        "hidden_layer": 5,
+        "num_units": 600,
+        "learning_rate": 0.001
     }
 }

@@ -11,17 +11,18 @@ def main(config_path: str = "config.json") -> None:
     with open(config_path, "r") as json_file:
         config = json.load(json_file)
         print("Loaded config file")
+    settings = config["settings"]
 
     # Load data paths and preprocess data
     data = config["data"]
+    data_root = settings["data_root"]
 
-    if config["preprocess"]:
-        data_root = config["settings"]["data_root"]
+    if settings["preprocess"]:
         data_preprocessed = preprocessing(data, data_root)
-        init_training(data_preprocessed)
+        init_training(config, data_preprocessed, data_root)
     else:
-        init_training(data, data_root)
-    
+        init_training(config, data, data_root)
+
 
 if __name__ == "__main__":
     main()
