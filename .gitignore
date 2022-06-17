@@ -13,3 +13,6 @@ models/checkpoints/*
 *.csv
 
 wandb/
+
+models/trained/*
+plots/*

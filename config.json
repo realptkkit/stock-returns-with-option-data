@@ -9,20 +9,25 @@
     },
     "train": {
         "model_path": "models",
-        "checkpoint_path": "models/checkpoints",
-        "epochs": 20
+        "model_save_path": "models/trained",
+        "epochs": 1,
+        "ensamble_num": 1,
+        "batch_size": 64
     },
     "evaluation": {
         "results_root": "results",
-        "evaluation_csv": "results/evaluation_results.csv"
+        "evaluation_csv": "results/evaluation_results.csv",
+        "ensamble_log_csv": "results/ensamble_log.csv",
+        "model_log_metrics": [
+            "MAE",
+            "MSE",
+            "OSS",
+            "RSS",
+            "TSS",
+            "OSS_theory"
+        ]
     },
     "model": {
-        "available_losses": [
-            "MeanSquaredError",
-            "MeanAbsolutePercentageError",
-            "MeanAbsoluteError",
-            "MeanSquaredLogarithmicError"
-        ],
         "loss": "mse",
         "metrics": [
             "mse",

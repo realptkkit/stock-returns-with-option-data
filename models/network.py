@@ -1,16 +1,17 @@
+from math import floor
 from typing import Dict, List
-import tensorflow as tf
 from tensorflow.keras import layers, losses, optimizers, Model, Input, callbacks
-from keras.layers import Dropout
+from tensorflow.keras.layers import Dropout
+
+from utils.oos_metric import r_squared_fn
 
 
-def init_model(data_horizon: str, config: dict) -> Model:
+def init_model(experiment_name: str, config: dict) -> Model:
     input_dim = config["input_dim"]
     hidden_layer = config["hidden_layer"]
     num_units = config["num_units"]
     loss = config["loss"]
     optimizer = config["optimizer"]
-    metrics = config["metrics"]
     learning_rate = config["learning_rate"]
     model = create_model(
         input_dim=input_dim,
@@ -18,21 +19,20 @@ def init_model(data_horizon: str, config: dict) -> Model:
         num_units=num_units,
         loss=loss,
         optimizer=optimizer,
-        metrics=metrics,
         learning_rate=learning_rate,
-        data_horizon=data_horizon
+        experiment_name=experiment_name
     )
     return model
 
 
 def create_model(
-        data_horizon: str,
+        experiment_name: str,
         input_dim: int = 938,
         hidden_layer: int = 5,
         num_units: int = 600,
         loss: str = "mse",
         optimizer: str = "adam",
-        metrics: List[str] = ["mse", "mape", "mae", "msle"],
+        metrics: List[str] = ["mse", "mape", "mae", "msle", r_squared_fn],
         learning_rate: float = 0.001,
 ) -> Model:
     inputs = Input(shape=(input_dim,), name="option_data")
@@ -45,7 +45,7 @@ def create_model(
     x = Dropout(0.4)(x)
     print(f"dense_0 layer has {num_units} units")
     for i in range(hidden_layer-1):
-        delta = (i+1)*(num_units/hidden_layer) + 50
+        delta = (i+1)*floor((num_units/hidden_layer)) + 50
         units = num_units-delta
         x = layers.Dense(
             units,
@@ -65,7 +65,7 @@ def create_model(
     model = Model(
         inputs=inputs,
         outputs=outputs,
-        name=f"DNN_{hidden_layer}_{data_horizon}"
+        name=f"DNN_{hidden_layer}_{experiment_name}"
     )
     model.compile(
         loss=loss,  # Mean Squared Error
