@@ -3,6 +3,9 @@ from typing import Dict
 import pandas as pd
 from preprocessing import preprocessing
 from train import init_training
+import os
+# os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 
 def main(config_path: str = "config.json") -> None:

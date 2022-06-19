@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 import pandas as pd
 from pandas.tseries.offsets import BMonthEnd, MonthEnd, MonthBegin
@@ -10,7 +11,7 @@ class WindowGenerator():
             labels: List[str],
             features: List[str],
             training_width: int = 10,
-            validation_width: int = 5,
+            validation_width: int = 1,
             testing_width: int = 1):
 
         # Data, Labels and Features

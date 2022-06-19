@@ -10,8 +10,8 @@
     "train": {
         "model_path": "models",
         "model_save_path": "models/trained",
-        "epochs": 1,
-        "ensamble_num": 1,
+        "epochs": 10,
+        "ensamble_num": 5,
         "batch_size": 64
     },
     "evaluation": {
@@ -25,7 +25,11 @@
             "RSS",
             "TSS",
             "OSS_theory"
-        ]
+        ],
+        "training_width": 10,
+        "validation_width": 2,
+        "testing_width": 1
+
     },
     "model": {
         "loss": "mse",

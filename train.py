@@ -16,7 +16,7 @@ import csv
 from tensorflow.keras.metrics import mean_absolute_error, mean_squared_error
 import numpy as np
 from utils.log_utils import average_yearly_logs
-
+import gc
 from utils.oos_metric import r_squared
 from utils.window_generator import WindowGenerator
 
@@ -32,8 +32,7 @@ def init_training(
     print("Initialize training script.")
     gpus = tf.config.experimental.list_physical_devices('GPU')
     tf.config.experimental.set_memory_growth(gpus[0], True)
-    # os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
-    # print("TF_GPU_ALLOCATOR: ", os.getenv("TF_GPU_ALLOCATOR"))
+    print("TF_GPU_ALLOCATOR: ", os.getenv("TF_GPU_ALLOCATOR"))
 
     train_config = config["train"]
     model_config = config["model"]
@@ -68,10 +67,16 @@ def init_training(
             ['secid', 'theory_eret', "target_eret"], axis=1).columns
 
         # Create WindowGenerate for dataloading
+        train_w = evaluation_config["training_width"]
+        val_w = evaluation_config["validation_width"]
+        test_w = evaluation_config["testing_width"]
         wg = WindowGenerator(
             data=data,
             labels=combined_target,
-            features=features
+            features=features,
+            training_width=train_w,
+            validation_width=val_w,
+            testing_width=test_w
         )
 
         # Ensamble Training
@@ -118,11 +123,11 @@ def init_training(
         # Log model results and create csv for each run
         evaluation_range = wg.get_evaluation_range()
         dir = evaluation_config["results_root"]
-        path = os.path.join(dir, f"evaluation_run_{now}_{data_horizon}.csv")
+        path = os.path.join(dir, f"evaluation_run_{now}_{data_horizon}_{ensamble_num}.csv")
         averaged_yearly_logs = average_yearly_logs(
             model_log_list, eval_metrics, evaluation_range
         )
-        averaged_yearly_logs.to_csv(path, index=False)
+        averaged_yearly_logs.to_csv(path, index=True)
 
         # Log ensamble results for each run in a single csv
         print("Logging ensamble results to: ", path)
@@ -131,15 +136,17 @@ def init_training(
             "ensamble_name",
             "data_horizon",
             "ensamble_num",
+            "train-val-test_width"
         ] + eval_metrics
         fields = {
-            "ensamble_name": f"ensamble_{now}_{data_horizon}",
+            "ensamble_name": f"ensamble_{now}_{data_horizon}_SW",
             "data_horizon": data_horizon,
             "ensamble_num": ensamble_num,
+            "train-val-test_width": f"{train_w}-{val_w}-{test_w}"
+
         }
-        logs = pd.DataFrame(columns=ensamble_log_col)
         for metric in eval_metrics:
-            fields[metric] = logs[metric].mean()
+            fields[metric] = averaged_yearly_logs[metric].mean()
 
         with open(path, 'a', newline='\n') as f:
             writer = csv.DictWriter(f, fieldnames=ensamble_log_col)
@@ -172,13 +179,13 @@ def train(experiment_name: str, config: dict, wg: WindowGenerator) -> str:
 
     # Prepare logging
     model_log_metrics = evaluation_config["model_log_metrics"]
-    log_dict = {}
     model_log = pd.DataFrame(columns=model_log_metrics)
 
     # config tensorflow session
     while not wg.data_end_reached():
         backend.clear_session()
         # Get current testing year
+        log_dict = {}
         current_year = wg.get_current_evaluation_year()
         print("Training and Validation window currently until: ", current_year)
         log_dict["evaluation_year"] = current_year
@@ -204,25 +211,36 @@ def train(experiment_name: str, config: dict, wg: WindowGenerator) -> str:
                 WandbCallback(), early_stopping_callback
             ]
         )
+        
         # Evaluate
         prediction = model.predict(X_test)
         _, eval_metrics_filled = evaluation(
-            prediction, X_test, y_test, predictions_theory
-        )
+            prediction, y_test, predictions_theory)
+
         # Log results
         log_dict = log_dict | eval_metrics_filled
         log_df = pd.DataFrame([log_dict])
         model_log = pd.concat([model_log, log_df])
 
+        # Free some memory
+        prediction = predictions_theory = y_val = y_test = y_train = None
+        eval_metrics_filled = None
+        log_dict = None
+        X_train = y_train_comb = X_val = y_val_combined = X_test = y_test_comb = None
+        
         # Update sliding window
         wg.update_dates()
-        
+        gc.collect()
+
+    # Convert year to int and set as index
+    model_log["evaluation_year"] = model_log["evaluation_year"].astype(int)
+    model_log.set_index("evaluation_year", inplace=True)
+
     return model, model_log
 
 
 def evaluation(
     prediction: np.array,
-    X_test: pd.DataFrame,
     y_test: pd.DataFrame,
     predictions_theory: pd.DataFrame
 ) -> Tuple[np.array, dict]:
@@ -247,7 +265,7 @@ def evaluation(
     print(f""" ------ Evaluation Results ------
     MAE: {mae} | MSE: {mse}
     OSS: {oss} | RSS: {rss} | TSS: {tss}
-    OSS_theory
+    OSS_theory: {oss_theory}
     """)
 
     eval_metrics = {
@@ -258,4 +276,5 @@ def evaluation(
         "TSS": tss,
         "OSS_theory": oss_theory
     }
+    gc.collect()
     return prediction, eval_metrics
