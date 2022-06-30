@@ -6,20 +6,17 @@ from tensorflow.keras.layers import Dropout
 from utils.oos_metric import r_squared_fn
 
 
-def init_model(experiment_name: str, config: dict) -> Model:
-    input_dim = config["input_dim"]
+def init_model(experiment_name: str, config: dict, input_dim: int) -> Model:
     hidden_layer = config["hidden_layer"]
     num_units = config["num_units"]
     loss = config["loss"]
     optimizer = config["optimizer"]
-    learning_rate = config["learning_rate"]
     model = create_model(
         input_dim=input_dim,
         hidden_layer=hidden_layer,
         num_units=num_units,
         loss=loss,
         optimizer=optimizer,
-        learning_rate=learning_rate,
         experiment_name=experiment_name
     )
     return model
@@ -27,14 +24,16 @@ def init_model(experiment_name: str, config: dict) -> Model:
 
 def create_model(
         experiment_name: str,
-        input_dim: int = 938,
+        input_dim: int = 20,
         hidden_layer: int = 5,
-        num_units: int = 600,
+        num_units: int = 40,
         loss: str = "mse",
         optimizer: str = "adam",
         metrics: List[str] = ["mse", "mape", "mae", "msle", r_squared_fn],
-        learning_rate: float = 0.001,
 ) -> Model:
+
+    correction = 50 if input_dim > 100 else 5
+
     inputs = Input(shape=(input_dim,), name="option_data")
     x = layers.Dense(
         num_units,
@@ -42,10 +41,10 @@ def create_model(
         kernel_initializer='he_uniform',
         name=f"dense_0"
     )(inputs)
-    x = Dropout(0.4)(x)
+    x = Dropout(0.3)(x)
     print(f"dense_0 layer has {num_units} units")
     for i in range(hidden_layer-1):
-        delta = (i+1)*floor((num_units/hidden_layer)) + 50
+        delta = floor(num_units / hidden_layer) * (i+1) + correction
         units = num_units-delta
         x = layers.Dense(
             units,
@@ -53,7 +52,7 @@ def create_model(
             kernel_initializer='he_uniform',
             name=f"dense_{i+1}"
         )(x)
-        x = Dropout(0.3)(x)
+        x = Dropout(0.1)(x)
         print(f"dense_{i+1} layer has {units} units")
     outputs = layers.Dense(
         1,
@@ -61,7 +60,7 @@ def create_model(
         kernel_initializer='he_uniform',
         name="outputs"
     )(x)
-    
+
     model = Model(
         inputs=inputs,
         outputs=outputs,

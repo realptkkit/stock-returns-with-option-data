@@ -27,13 +27,23 @@ def init_training(
     data_root: str = "data",
     ensamble_num: int = 10,
 ) -> None:
+    """Prerparing training script by setting up configurations and data. In each run
+    several models are training and the results averaged for each evaluation year.
+    Then, the r² combined over the whole dataset is calculated and stored in the log file.add()
 
+    Args:
+        config (dict): The config json
+        data_dict (dict): Can either contain actuall data sets or paths to the preprocessed ones.
+        data_root (str, optional): Determines where to look for the data. Defaults to "data".
+        ensamble_num (int, optional): Determines the ensamble size. Defaults to 10.
+    """
     # Initialize training script and configs
     print("Initialize training script.")
     gpus = tf.config.experimental.list_physical_devices('GPU')
     tf.config.experimental.set_memory_growth(gpus[0], True)
     print("TF_GPU_ALLOCATOR: ", os.getenv("TF_GPU_ALLOCATOR"))
 
+    settings = config["settings"]
     train_config = config["train"]
     model_config = config["model"]
     evaluation_config = config["evaluation"]
@@ -51,9 +61,10 @@ def init_training(
         # If not received, load data and sort ascending.
         if type(data_set) == str:
             print("Loading preprocessed data: ", data_horizon)
+            filename = data_horizon if not settings["encode"] else f"{data_horizon}_encoded"
             path = os.path.join(
                 data_root, "preprocessed",
-                data_horizon + ".csv"
+                filename + ".csv"
             )
             data = pd.read_csv(
                 path, index_col="date",
@@ -70,21 +81,23 @@ def init_training(
         train_w = evaluation_config["training_width"]
         val_w = evaluation_config["validation_width"]
         test_w = evaluation_config["testing_width"]
-        wg = WindowGenerator(
-            data=data,
-            labels=combined_target,
-            features=features,
-            training_width=train_w,
-            validation_width=val_w,
-            testing_width=test_w
-        )
 
         # Ensamble Training
         for j in range(ensamble_num):
 
             # Name of experiment
-            print(f"START Experiment Nr. {j}/{ensamble_num}")
+            print(f"START Experiment Nr. {j+1}/{ensamble_num}")
             experiment_name = f"{str(now)}_{data_horizon}_ensamble_{str(j)}"
+
+            # Generate Data Window
+            wg = WindowGenerator(
+                data=data,
+                labels=combined_target,
+                features=features,
+                training_width=train_w,
+                validation_width=val_w,
+                testing_width=test_w
+            )
 
             # Init wheigt and biases for logging
             wandb_config = {
@@ -118,12 +131,14 @@ def init_training(
             wandb.finish(
                 quiet=True
             )
-            print(f"FINISHED Experiment Nr. {j}/{ensamble_num}")
+            print(f"FINISHED Experiment Nr. {j+1}/{ensamble_num}")
 
+        print(f"Started Logging results of {ensamble_num} ensamble runs")
         # Log model results and create csv for each run
         evaluation_range = wg.get_evaluation_range()
         dir = evaluation_config["results_root"]
-        path = os.path.join(dir, f"evaluation_run_{now}_{data_horizon}_{ensamble_num}.csv")
+        path = os.path.join(
+            dir, f"evaluation_run_{now}_{data_horizon}_{ensamble_num}.csv")
         averaged_yearly_logs = average_yearly_logs(
             model_log_list, eval_metrics, evaluation_range
         )
@@ -138,8 +153,9 @@ def init_training(
             "ensamble_num",
             "train-val-test_width"
         ] + eval_metrics
+        suffix = "_encoded" if settings["encode"] else "_all"
         fields = {
-            "ensamble_name": f"ensamble_{now}_{data_horizon}_SW",
+            "ensamble_name": f"ensamble_{now}_{data_horizon}_SW{suffix}",
             "data_horizon": data_horizon,
             "ensamble_num": ensamble_num,
             "train-val-test_width": f"{train_w}-{val_w}-{test_w}"
@@ -153,9 +169,7 @@ def init_training(
             writer.writerow(fields)
             f.close()
 
-
-def get_train_split(data, time_horizon):
-    pass
+        print("Logging finished. Exiting")
 
 
 def train(experiment_name: str, config: dict, wg: WindowGenerator) -> str:
@@ -169,9 +183,9 @@ def train(experiment_name: str, config: dict, wg: WindowGenerator) -> str:
     model = Model
 
     # Initiate model and train
-    model = init_model(experiment_name, model_config)
+    model = init_model(experiment_name, model_config, wg.get_feature_shape()[1])
     early_stopping_callback = callbacks.EarlyStopping(
-        monitor="r_squared_fn",
+        monitor="val_r_squared_fn",
         patience=3,
         mode="max",
         restore_best_weights=True
@@ -211,7 +225,7 @@ def train(experiment_name: str, config: dict, wg: WindowGenerator) -> str:
                 WandbCallback(), early_stopping_callback
             ]
         )
-        
+
         # Evaluate
         prediction = model.predict(X_test)
         _, eval_metrics_filled = evaluation(
@@ -227,7 +241,7 @@ def train(experiment_name: str, config: dict, wg: WindowGenerator) -> str:
         eval_metrics_filled = None
         log_dict = None
         X_train = y_train_comb = X_val = y_val_combined = X_test = y_test_comb = None
-        
+
         # Update sliding window
         wg.update_dates()
         gc.collect()
@@ -235,7 +249,7 @@ def train(experiment_name: str, config: dict, wg: WindowGenerator) -> str:
     # Convert year to int and set as index
     model_log["evaluation_year"] = model_log["evaluation_year"].astype(int)
     model_log.set_index("evaluation_year", inplace=True)
-
+    gc.collect()
     return model, model_log
 
 
@@ -244,7 +258,7 @@ def evaluation(
     y_test: pd.DataFrame,
     predictions_theory: pd.DataFrame
 ) -> Tuple[np.array, dict]:
-
+    print("Evaluation started")
     oss, rss, tss = r_squared(
         target_returns=y_test,
         predictions=prediction.squeeze()
