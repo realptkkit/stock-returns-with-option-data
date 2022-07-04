@@ -7,3 +7,14 @@ __pycache__/
 data/*/*
 .git
 .vscode
+
+models/checkpoints/*
+
+*.csv
+
+wandb/
+
+models/trained/*
+plots/*
+
+models/autoencoder/*

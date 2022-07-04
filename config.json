@@ -1,12 +1,46 @@
-{   
+{
     "settings": {
-        "data_root": "data"
+        "data_root": "data",
+        "preprocess": true,
+        "encode": true
     },
     "data": {
-        "data_yearly": "mlsruod_yearly.csv",
-        "data_monthly": "mlsruod_monthly.csv"
+        "data_monthly": "mlsruod_monthly.csv",
+        "data_yearly": "mlsruod_yearly.csv"
     },
-    "train" : {
-
+    "train": {
+        "model_path": "models",
+        "model_save_path": "models/trained",
+        "epochs": 50,
+        "ensamble_num": 3,
+        "batch_size": 256
+    },
+    "evaluation": {
+        "results_root": "results",
+        "evaluation_csv": "results/evaluation_results.csv",
+        "ensamble_log_csv": "results/ensamble_log.csv",
+        "model_log_metrics": [
+            "MAE",
+            "MSE",
+            "OSS",
+            "RSS",
+            "TSS",
+            "OSS_theory"
+        ],
+        "training_width": 1,
+        "validation_width": 1,
+        "testing_width": 1
+    },
+    "model": {
+        "loss": "mse",
+        "metrics": [
+            "mse",
+            "mape",
+            "mae",
+            "msle"
+        ],
+        "optimizer": "adam",
+        "hidden_layer": 4,
+        "num_units": 40
     }
 }
