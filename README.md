@@ -1,6 +1,13 @@
 # Stock Returns with Option Data
 
 In order to start the training just envoke the main script. The configurations can be altered in the config.json file.
+Note that a following folders must be present in order to work.
+
+- data/cleaned
+- data/preprocessed
+- data/raw
+- models/autoencoder
+- models/trained
 
 ```shell
 python main.py
