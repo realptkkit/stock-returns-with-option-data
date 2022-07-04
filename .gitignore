@@ -4,7 +4,10 @@ __pycache__/
 # jupyter
 .ipynb_checkpoints
 
-data/*/*
+data/*
+!data/cleaned
+!data/preprocessed
+!data/raw
 .git
 .vscode
 
