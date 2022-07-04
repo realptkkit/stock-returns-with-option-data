@@ -16,3 +16,5 @@ wandb/
 
 models/trained/*
 plots/*
+
+models/autoencoder/*

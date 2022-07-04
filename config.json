@@ -1,8 +1,8 @@
 {
     "settings": {
         "data_root": "data",
-        "preprocess": false,
-        "encode": false
+        "preprocess": true,
+        "encode": true
     },
     "data": {
         "data_monthly": "mlsruod_monthly.csv",
@@ -11,14 +11,13 @@
     "train": {
         "model_path": "models",
         "model_save_path": "models/trained",
-        "epochs": 
-        50,
+        "epochs": 50,
         "ensamble_num": 3,
-        "batch_size": 512
+        "batch_size": 256
     },
     "evaluation": {
         "results_root": "results",
-        "evaluation_csv": "resul-ts/evaluation_results.csv",
+        "evaluation_csv": "results/evaluation_results.csv",
         "ensamble_log_csv": "results/ensamble_log.csv",
         "model_log_metrics": [
             "MAE",
@@ -31,7 +30,6 @@
         "training_width": 1,
         "validation_width": 1,
         "testing_width": 1
-
     },
     "model": {
         "loss": "mse",
@@ -43,7 +41,6 @@
         ],
         "optimizer": "adam",
         "hidden_layer": 4,
-        "num_units": 600,
-        "learning_rate": 0.001
+        "num_units": 40
     }
 }

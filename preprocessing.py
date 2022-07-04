@@ -6,17 +6,31 @@ import os
 from sklearn.preprocessing import StandardScaler as SSC
 from tensorflow.keras import Model, models
 
+from models.autoencoder import train_autoenoder
 
-def preprocessing(data: Dict[str, str], data_root: str = "data") -> Dict[str, pd.DataFrame]:
-    # dict_data_cleaned = clean_data(data, data_root)
-    # dict_data_preprocessed = standardization(data, data_root)
+
+def preprocessing(data: Dict[str, Union[str, pd.DataFrame]], data_root: str = "data") -> None:
+    """Initilizes cleaning, scaling and dimension reduction of the data.add()
+
+    Args:
+        data (Dict[str, Union[str, pd.DataFrame]]): Name and path to the datasets.
+        data_root (str, optional): Root of the datafolder. Defaults to "data".
+    """
+    clean_data(data, data_root)
+    standardization(data, data_root)
     dimension_reduction(data, data_root)
 
 
 def clean_data(
         data: Dict[str, Union[str, pd.DataFrame]],
         data_root: str = "data"
-) -> Dict[str, pd.DataFrame]:
+) -> None:
+    """Cleans Nan values in the data via interpolation
+
+    Args:
+        data (Dict[str, Union[str, pd.DataFrame]]): Name and path to the datasets.
+        data_root (str, optional): Root of the datafolder. Defaults to "data".
+    """
 
     print("Start cleaning the data")
     data_horizon = str
@@ -41,17 +55,22 @@ def clean_data(
         cleaned_path = os.path.join(
             data_root, "cleaned", data_horizon + ".csv")
         df.to_csv(cleaned_path)
-        data_cleaned[data_horizon] = df
         print(f"Cleaned {data_horizon} and saved to {cleaned_path}")
     return data_cleaned
 
 
 def standardization(
         data: Dict[str, Union[str, pd.DataFrame]],
-        data_root: str = "data") -> Dict[str, pd.DataFrame]:
+        data_root: str = "data") -> None:
+    """Uses a standardscaler to scale the input features according to the standard 
+    normal distribution
 
+    Args:
+        data (Dict[str, Union[str, pd.DataFrame]]): Name and path to the datasets.
+        data_root (str, optional): Root of the datafolder. Defaults to "data".
+    """
+    print("Start standardizing the data")
     scaler = SSC()
-    data_preprocessed = data
     for data_horizon, data_set in data.items():
         df = data_set
         if type(data_set) == str:
@@ -67,18 +86,26 @@ def standardization(
         final_path = os.path.join(
             data_root, "preprocessed", data_horizon + ".csv")
         X_scaled.to_csv(final_path)
-        data_preprocessed[data_horizon] = X_scaled
-        print(f"Preprocessed {data_horizon} and saved to {final_path}")
-    return data_preprocessed
+        print(f"Scaled {data_horizon} and saved to {final_path}")
 
 
 def dimension_reduction(
         data_dict: Dict[str, Union[str, pd.DataFrame]],
         data_root: str = "data",
-        model_root: str = "models/autoencoder") -> Dict[str, pd.DataFrame]:
+        model_root: str = "models/autoencoder") -> None:
+    """Initializes and trains an autoencoder with the data and reduce the dimensionality of the 
+    features using the encoder part.
 
+    Args:
+        data (Dict[str, Union[str, pd.DataFrame]]): Name and path to the datasets.
+        data_root (str, optional): Root of the datafolder. Defaults to "data".
+        model_root (str, optional): Root of the trained model folder. 
+        Defaults to "models/autoencoder".
+    """
+    print("Start encoding the data")
     data = pd.DataFrame
     encoder = Model
+    train_autoenoder()
     for data_horizon, data_set in data_dict.items():
         if type(data_set) == str:
             print("Loading preprocessed data: ", data_horizon)
@@ -90,19 +117,25 @@ def dimension_reduction(
                 path, parse_dates=["date"]
             )
         data.sort_values(by="date", inplace=True)
-        features = data.drop(["date", 'secid', 'theory_eret', "target_eret"], axis=1)
+        features = data.drop(
+            ["date", 'secid', 'theory_eret', "target_eret"], axis=1)
         data.drop(columns=features.columns, inplace=True)
 
-        encoder = models.load_model(os.path.join(model_root, f"autoencoder_{data_horizon}"))
+        encoder = models.load_model(os.path.join(
+            model_root, f"autoencoder_{data_horizon}"))
 
         features_encoded = encoder.predict(features)
         columns = []
         for i in range(0, features_encoded.shape[1]):
             columns.append(f"encoded_{i}")
-        features_encoded_frame = pd.DataFrame(features_encoded, columns=columns)
+        features_encoded_frame = pd.DataFrame(
+            features_encoded, columns=columns)
         data_encoded = pd.concat([data, features_encoded_frame], axis=1)
         data_encoded.set_index("date", inplace=True)
         data_encoded.sort_values(by="date", inplace=True)
 
-        final_path = os.path.join(data_root, "preprocessed", data_horizon + "_encoded.csv")
+        final_path = os.path.join(
+            data_root, "preprocessed", data_horizon + "_encoded.csv")
         data_encoded.to_csv(final_path)
+        print(f"Encoded features of {data_horizon} and saved to {final_path}")
+

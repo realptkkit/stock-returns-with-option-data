@@ -11,7 +11,17 @@ def train_autoenoder(
         config_path: str = "config.json",
         model_root: str = "models/autoencoder",
         epochs: int = 200) -> Model:
+    """Trains the autoencoder and saves the encoder part.add()
 
+    Args:
+        config_path (str, optional): Path to the config file. Defaults to "config.json".
+        model_root (str, optional): Folder where model should be stored. 
+        Defaults to "models/autoencoder".
+        epochs (int, optional): Amount of epochs for the training. Defaults to 200.
+
+    Returns:
+        Model: _description_
+    """
     config = Dict
     with open(config_path, "r") as json_file:
         config = json.load(json_file)
@@ -61,7 +71,8 @@ def train_autoenoder(
         )
         model = None
         X_train = X_test = None
-        autoencoder.save(os.path.join(model_root, f"autoencoder_{data_horizon}"))
+        autoencoder.save(os.path.join(
+            model_root, f"autoencoder_{data_horizon}"))
         backend.clear_session()
         gc.collect()
 
@@ -73,7 +84,7 @@ def create_autoencoder(
         metrics: List[str] = ["mse", "mae"],
         bottleneck_num: int = 15
 ) -> Model:
-
+    """Creates the autoencoder model"""
     # Encoder
     inputs = Input(shape=(input_dim,), name="autoencoder")
     x = layers.Dense(

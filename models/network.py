@@ -7,6 +7,16 @@ from utils.oos_metric import r_squared_fn
 
 
 def init_model(experiment_name: str, config: dict, input_dim: int) -> Model:
+    """Reads out the configuration file and creates model accordingly.
+
+    Args:
+        experiment_name (str): Name of the experiment
+        config (dict): Configuration dictonary
+        input_dim (int): Input dimensions of the model
+
+    Returns:
+        Model: An initialized model.
+    """
     hidden_layer = config["hidden_layer"]
     num_units = config["num_units"]
     loss = config["loss"]
@@ -31,7 +41,7 @@ def create_model(
         optimizer: str = "adam",
         metrics: List[str] = ["mse", "mape", "mae", "msle", r_squared_fn],
 ) -> Model:
-
+    """Creates a sequentiall Feed Forward Network"""
     correction = 50 if input_dim > 100 else 5
 
     inputs = Input(shape=(input_dim,), name="option_data")
